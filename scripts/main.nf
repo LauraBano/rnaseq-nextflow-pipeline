@@ -8,6 +8,7 @@ include { TRIMMOMATIC } from './modules/trimmomatic'
 include { STAR_INDEX } from './modules/star_index'
 include { STAR_ALIGN } from './modules/star_align'
 include { SAMTOOLS } from './modules/samtools'
+include { PICARD } from './modules/picard'
 
 /* Especificar las rutas para inputs y outputs */
 params.input = "${projectDir}/assets/samplesheet.csv"
@@ -70,4 +71,5 @@ workflow {
 
     SAMTOOLS(STAR_ALIGN.out.bam)
 
+    PICARD(SAMTOOLS.out.bam)
 }
