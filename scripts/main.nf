@@ -7,6 +7,7 @@ include { FASTQC as FASTQC_TRIMMED } from './modules/fastqc'
 include { TRIMMOMATIC } from './modules/trimmomatic'
 include { STAR_INDEX } from './modules/star_index'
 include { STAR_ALIGN } from './modules/star_align'
+include { SAMTOOLS } from './modules/samtools'
 
 /* Especificar las rutas para inputs y outputs */
 params.input = "${projectDir}/assets/samplesheet.csv"
@@ -66,5 +67,7 @@ workflow {
         TRIMMOMATIC.out.paired,
         STAR_INDEX.out.index
     )
+
+    SAMTOOLS(STAR_ALIGN.out.bam)
 
 }
