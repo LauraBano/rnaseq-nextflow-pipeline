@@ -5,13 +5,17 @@ nextflow.enable.dsl=2
 include { FASTQC as FASTQC_RAW } from './modules/fastqc'
 include { FASTQC as FASTQC_TRIMMED } from './modules/fastqc'
 include { TRIMMOMATIC } from './modules/trimmomatic'
-
+include { STAR_INDEX } from './modules/star_index'
+include { STAR_ALIGN } from './modules/star_align'
 
 /* Especificar las rutas para inputs y outputs */
 params.input = "${projectDir}/assets/samplesheet.csv"
 params.fastq_dir = "${projectDir}/../data/fastq"
 params.outdir = "${projectDir}/../results"
-
+params.genome = "${projectDir}/../data/genome/GRCh38.fa"
+params.gtf = "${projectDir}/../data/genome/GRCh38.gtf"
+/* Parámetro recomendado para STAR_INDEX y calculado a partir del timming: maxlength -1 -> 63 - 1 = 62 */
+params.sjdb_overhang = 62
 
 /* Crear los canales y orquestar los procesos en un flujo de trabajo general */
 workflow {
@@ -43,17 +47,24 @@ workflow {
             tuple(meta, reads)
         }
 
-    samples_ch.view { meta, reads ->
-        "${meta.id} | ${meta.donor} | ${meta.condition} | ${reads*.name}"
-    }
-
     FASTQC_RAW(samples_ch)
 
     TRIMMOMATIC(samples_ch)
 
     FASTQC_TRIMMED(TRIMMOMATIC.out.paired)
 
-    FASTQC_TRIMMED.out.zip.view { meta, files ->
-    "POST-TRIM FASTQC: ${meta.id} | ${files*.name}"
-    }
+    /* Generar una tupla con genoma de referencia + gtf */ 
+    reference = tuple(
+        file(params.genome, checkIfExists: true),
+        file(params.gtf, checkIfExists: true),
+        params.sjdb_overhang
+    )
+
+    STAR_INDEX(reference)
+
+    STAR_ALIGN(
+        TRIMMOMATIC.out.paired,
+        STAR_INDEX.out.index
+    )
+
 }
