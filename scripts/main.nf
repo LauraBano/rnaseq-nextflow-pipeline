@@ -9,6 +9,7 @@ include { STAR_INDEX } from './modules/star_index'
 include { STAR_ALIGN } from './modules/star_align'
 include { SAMTOOLS } from './modules/samtools'
 include { PICARD } from './modules/picard'
+include { FEATURECOUNTS } from './modules/featurecounts'
 
 /* Especificar las rutas para inputs y outputs */
 params.input = "${projectDir}/assets/samplesheet.csv"
@@ -72,4 +73,14 @@ workflow {
     SAMTOOLS(STAR_ALIGN.out.bam)
 
     PICARD(SAMTOOLS.out.bam)
+
+    counts_bams_ch = PICARD.out.bam
+        .map { meta, bam -> bam }
+        .collect()
+
+    FEATURECOUNTS(
+        counts_bams_ch,
+        file(params.gtf, checkIfExists: true)
+    )
+
 }
