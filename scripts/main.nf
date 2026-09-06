@@ -10,6 +10,7 @@ include { STAR_ALIGN } from './modules/star_align'
 include { SAMTOOLS } from './modules/samtools'
 include { PICARD } from './modules/picard'
 include { FEATURECOUNTS } from './modules/featurecounts'
+include { MULTIQC } from './modules/multiqc'
 
 /* Especificar las rutas para inputs y outputs */
 params.input = "${projectDir}/assets/samplesheet.csv"
@@ -83,4 +84,38 @@ workflow {
         file(params.gtf, checkIfExists: true)
     )
 
+    multiqc_inputs_ch = FASTQC_RAW.out.zip
+        .map { meta, files -> files }
+        .mix(
+            FASTQC_TRIMMED.out.zip
+                .map { meta, files -> files }
+        )
+        .mix(
+            TRIMMOMATIC.out.log
+                .map { meta, file -> file }
+        )
+        .mix(
+            STAR_ALIGN.out.log
+                .map { meta, file -> file }
+        )
+        .mix(
+            SAMTOOLS.out.flagstat
+                .map { meta, file -> file }
+        )
+        .mix(
+            SAMTOOLS.out.idxstats
+                .map { meta, file -> file }
+        )
+        .mix(
+            PICARD.out.metrics
+                .map { meta, file -> file }
+        )
+        .mix(
+            FEATURECOUNTS.out.summary
+        )
+        .flatten()
+        .collect()
+
+    MULTIQC(multiqc_inputs_ch)
 }
+
