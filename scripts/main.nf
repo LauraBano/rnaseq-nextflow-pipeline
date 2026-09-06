@@ -11,6 +11,7 @@ include { SAMTOOLS } from './modules/samtools'
 include { PICARD } from './modules/picard'
 include { FEATURECOUNTS } from './modules/featurecounts'
 include { MULTIQC } from './modules/multiqc'
+include { R_EXPLORATORY } from './modules/r_exploratory'
 
 /* Especificar las rutas para inputs y outputs */
 params.input = "${projectDir}/assets/samplesheet.csv"
@@ -84,6 +85,15 @@ workflow {
         file(params.gtf, checkIfExists: true)
     )
 
+    R_EXPLORATORY(
+        FEATURECOUNTS.out.counts,
+        file(params.input, checkIfExists: true),
+        file(
+            "${projectDir}/bin/rnaseq_exploratory.R",
+            checkIfExists: true
+        )
+    )
+
     multiqc_inputs_ch = FASTQC_RAW.out.zip
         .map { meta, files -> files }
         .mix(
@@ -115,7 +125,6 @@ workflow {
         )
         .flatten()
         .collect()
-
+    
     MULTIQC(multiqc_inputs_ch)
 }
-
